@@ -417,6 +417,7 @@
     .q-row button{padding-inline:10px;}
   }
 </style>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -893,8 +894,8 @@ async function loadResults() {
     const questions = campaign ? (campaign.questions || []) : [];
     let html = '<table><tr><th>日時</th><th>名前</th><th>部署</th>';
     questions.forEach(q => html += `<th>${escapeHtml(q.label)}${q.rating5 ? '（5段階）' : ''}</th>`);
-    html += '</tr>';
-    reviews.forEach(r => {
+    html += '<th>操作</th></tr>';
+    reviews.forEach((r, reviewIndex) => {
       html += `<tr><td>${formatDate(r.timestamp)}</td><td>${escapeHtml(r.reviewerName)}</td><td>${escapeHtml(r.department)}</td>`;
       questions.forEach(q => {
         const ans = (r.answers || {})[q.label] || '';
@@ -905,6 +906,7 @@ async function loadResults() {
           html += `<td>${escapeHtml(ans)}</td>`;
         }
       });
+      html += `<td><button type="button" class="danger" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="deleteReviewConfirm(${reviewIndex})">削除</button></td>`;
       html += '</tr>';
     });
     html += '</table>';
@@ -917,15 +919,41 @@ async function loadResults() {
   }
 }
 
-function xmlEscape(v) {
-  return String(v == null ? '' : v)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+async function deleteReviewConfirm(reviewIndex) {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const review = cache.reviews[reviewIndex];
+  if (!confirm('この回答を削除します。よろしいですか？\n\n削除した回答は結果一覧・Excel出力の両方から除外されます。')) return;
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'deleteReview',
+        password: adminPassword,
+        campaignId: cache.campaign.id,
+        timestamp: review.timestamp,
+        reviewerName: review.reviewerName || '',
+        department: review.department || ''
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await loadResults();
+  } catch (err) {
+    alert('削除に失敗しました: ' + err.message + '\n\n※ この機能にはGAS側にも deleteReview 処理の追加が必要です。');
+  }
 }
 
 function exportResultsExcel() {
   const cache = window._resultsCache;
   if (!cache || !cache.reviews || !cache.reviews.length) {
     alert('出力できる回答がありません');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('Excel出力ライブラリの読み込みに失敗しました。インターネット接続を確認して再読み込みしてください。');
     return;
   }
 
@@ -945,41 +973,35 @@ function exportResultsExcel() {
     const row = [formatDate(r.timestamp), r.reviewerName || '', r.department || ''];
     questions.forEach(q => {
       const answers = r.answers || {};
-      row.push(answers[q.label] || '');
-      if (q.rating5) row.push(answers[q.label + '__note'] || '');
+      if (q.rating5) {
+        const score = answers[q.label] || '';
+        row.push(score === '' ? '' : Number(score));
+        row.push(answers[q.label + '__note'] || '');
+      } else {
+        row.push(answers[q.label] || '');
+      }
     });
     return row;
   });
 
-  const cell = v => `<Cell><Data ss:Type="String">${xmlEscape(v)}</Data></Cell>`;
-  const rowXml = values => `<Row>${values.map(cell).join('')}</Row>`;
-  const xml = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Styles>
-  <Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#F3E5E1" ss:Pattern="Solid"/></Style>
- </Styles>
- <Worksheet ss:Name="レビュー結果">
-  <Table>
-   <Row>${headers.map(h => `<Cell ss:StyleID="Header"><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`).join('')}</Row>
-   ${rows.map(rowXml).join('')}
-  </Table>
- </Worksheet>
-</Workbook>`;
+  const aoa = [];
+  aoa.push([campaign.productName + '　レビュー集計表']);
+  aoa.push(['出力日時', new Date().toLocaleString('ja-JP')]);
+  aoa.push(['回答数', cache.reviews.length]);
+  aoa.push([]);
+  aoa.push(headers);
+  aoa.push(...rows);
 
-  const blob = new Blob(['\ufeff', xml], { type:'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const lastCol = headers.length - 1;
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:lastCol} }];
+  ws['!cols'] = headers.map((h,i) => ({ wch: i < 3 ? (i === 0 ? 20 : 14) : Math.max(16, Math.min(34, String(h).length * 2 + 4)) }));
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:4,c:0},e:{r:4,c:lastCol}}) };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'レビュー結果');
   const safeName = String(campaign.productName || 'レビュー結果').replace(/[\\/:*?"<>|]/g,'_');
-  a.href = url;
-  a.download = safeName + '_レビュー結果.xls';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  XLSX.writeFile(wb, safeName + '_レビュー結果.xlsx', { compression:true });
 }
 
 function formatDate(v) {
