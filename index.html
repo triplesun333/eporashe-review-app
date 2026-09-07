@@ -416,6 +416,16 @@
     .q-row{align-items:stretch;}
     .q-row button{padding-inline:10px;}
   }
+
+  .field-help{font-size:12px;color:var(--sub);margin:-2px 0 10px;}
+  .skin-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
+  .skin-type-choice{display:flex;align-items:center;gap:9px;margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-weight:500;cursor:pointer;transition:.18s ease;}
+  .skin-type-choice:hover{border-color:var(--main);background:#fffaf8;}
+  .skin-type-choice input{width:17px;height:17px;accent-color:var(--main);flex-shrink:0;}
+  .skin-type-choice:has(input:checked){border-color:var(--main);background:#fff5f3;box-shadow:0 0 0 1px rgba(185,138,94,.06);}
+  .skin-type-unknown{margin-top:8px;max-width:220px;}
+  @media(max-width:560px){.skin-type-grid{grid-template-columns:1fr;}.skin-type-unknown{max-width:none;}}
+
 </style>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -516,7 +526,48 @@ function renderReviewForm() {
   const c = selectedCampaign;
   let questionsHtml = '';
   (c.questions || []).forEach(q => {
-    if (q.rating5) {
+    if (q.label === '年代' && !q.rating5) {
+      questionsHtml += `
+        <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+        <select name="q_${q.id}" required>
+          <option value="">選択してください</option>
+          <option value="20代">20代</option>
+          <option value="30代">30代</option>
+          <option value="40代">40代</option>
+          <option value="50代">50代</option>
+          <option value="60代">60代</option>
+        </select>`;
+    } else if (q.label === '肌質' && !q.rating5) {
+      const skinTypes = [
+        '普通肌',
+        '乾燥肌',
+        '脂性肌（オイリー肌）',
+        '混合肌',
+        'インナードライ',
+        '敏感肌',
+        '乾燥性敏感肌',
+        '脂性・敏感肌',
+        'ニキビができやすい肌',
+        'ゆらぎ肌',
+        'その他'
+      ];
+      questionsHtml += `
+        <div class="skin-type-question">
+          <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+          <div class="field-help">当てはまるものをすべて選択してください</div>
+          <div class="skin-type-grid">
+            ${skinTypes.map(type => `
+              <label class="skin-type-choice">
+                <input type="checkbox" name="q_${q.id}" value="${escapeAttr(type)}">
+                <span>${escapeHtml(type)}</span>
+              </label>`).join('')}
+          </div>
+          <label class="skin-type-choice skin-type-unknown">
+            <input type="checkbox" name="q_${q.id}" value="わからない">
+            <span>わからない</span>
+          </label>
+        </div>`;
+    } else if (q.rating5) {
       questionsHtml += `
         <div class="rating-question">
           <label>${escapeHtml(q.label)}<span class="required">※</span></label>
@@ -548,7 +599,21 @@ function renderReviewForm() {
       <input type="text" name="reviewerName" required>
 
       <label>部署</label>
-      <input type="text" name="department" placeholder="例：経理／広報／店舗など">
+      <select name="department">
+        <option value="">選択してください</option>
+        <option value="経理">経理</option>
+        <option value="広報">広報</option>
+        <option value="資材">資材</option>
+        <option value="システム">システム</option>
+        <option value="モール">モール</option>
+        <option value="営業">営業</option>
+        <option value="デザイン">デザイン</option>
+        <option value="店舗">店舗</option>
+        <option value="商品企画">商品企画</option>
+        <option value="総務">総務</option>
+        <option value="人事">人事</option>
+        <option value="その他">その他</option>
+      </select>
 
       ${questionsHtml}
 
@@ -567,14 +632,25 @@ async function onSubmitReview(e) {
   btn.textContent = '送信中…';
 
   const answers = {};
-  (selectedCampaign.questions || []).forEach(q => {
-    const el = form.querySelector(`[name="q_${q.id}"]:checked`) || form.querySelector(`[name="q_${q.id}"]`);
-    answers[q.label] = el ? el.value : '';
+  for (const q of (selectedCampaign.questions || [])) {
+    if (q.label === '肌質' && !q.rating5) {
+      const checked = Array.from(form.querySelectorAll(`[name="q_${q.id}"]:checked`));
+      if (!checked.length) {
+        alert('肌質を1つ以上選択してください');
+        btn.disabled = false;
+        btn.textContent = 'この内容で送信する';
+        return;
+      }
+      answers[q.label] = checked.map(el => el.value).join('、');
+    } else {
+      const el = form.querySelector(`[name="q_${q.id}"]:checked`) || form.querySelector(`[name="q_${q.id}"]`);
+      answers[q.label] = el ? el.value : '';
+    }
     if (q.rating5) {
       const note = form.querySelector(`[name="q_${q.id}_note"]`);
       answers[q.label + '__note'] = note ? note.value : '';
     }
-  });
+  }
 
   const payload = {
     action: 'submitReview',
