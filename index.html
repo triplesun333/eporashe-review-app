@@ -370,7 +370,7 @@
     background:linear-gradient(145deg,#fffafa 0%,#fdf8f2 100%);
   }
   .rating-question>label{margin-top:0;}
-  .rating-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0 12px;}
+  .rating-scale{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:10px 0 12px;}
   .rating-choice{position:relative;}
   .rating-choice input{position:absolute;opacity:0;pointer-events:none;}
   .rating-choice span{
@@ -426,13 +426,20 @@
   .skin-type-unknown{margin-top:8px;max-width:220px;}
   @media(max-width:560px){.skin-type-grid{grid-template-columns:1fr;}.skin-type-unknown{max-width:none;}}
 
+
+  .result-actions{display:flex;gap:6px;flex-wrap:wrap;min-width:118px;}
+  .edit-panel{margin:16px 0;padding:18px;border:1px solid var(--border);border-radius:14px;background:#fffaf8;}
+  .edit-panel h3{margin:0 0 6px;color:var(--main-dark);font-size:16px;}
+  .edit-panel .edit-sub{font-size:12px;color:var(--sub);margin-bottom:14px;}
+  @media(max-width:700px){.rating-scale{grid-template-columns:repeat(5,1fr);}.rating-choice span{min-height:48px;}}
+
 </style>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
   <h1>試作品レビューアプリ</h1>
-  <div class="sub-title">エポラーシェ商品企画開発室</div>
+  <div class="sub-title">エポラーシェ商品企画室</div>
 
   <div class="main-tabs">
     <button class="main-tab-btn" id="mainTabReview" onclick="switchMainTab('review')">レビュー入力</button>
@@ -571,11 +578,11 @@ function renderReviewForm() {
       questionsHtml += `
         <div class="rating-question">
           <label>${escapeHtml(q.label)}<span class="required">※</span></label>
-          <div class="rating-scale" role="radiogroup" aria-label="${escapeAttr(q.label)} 5段階評価">
-            ${[1,2,3,4,5].map(n => `
+          <div class="rating-scale" role="radiogroup" aria-label="${escapeAttr(q.label)} 10段階評価">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n => `
               <label class="rating-choice">
                 <input type="radio" name="q_${q.id}" value="${n}" required>
-                <span>${n}<small>${n===1?'低い':n===5?'高い':''}</small></span>
+                <span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span>
               </label>`).join('')}
           </div>
           <label class="rating-note-label">備考・補足（任意）</label>
@@ -801,41 +808,57 @@ function defaultQuestions() {
     {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度（10点中）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度', rating5:true},
     {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'個人一言コメント', rating5:false}
   ];
 }
 
+function isPersonalQuestionLabel(label) {
+  return label === '年代' || label === '肌質' || label === '部署';
+}
+
 function renderQuestionList() {
   const el = document.getElementById('questionList');
-  el.innerHTML = questionDraft.map((q, i) => `
+  el.innerHTML = questionDraft.map((q, i) => {
+    const personal = isPersonalQuestionLabel(q.label);
+    return `
     <div class="question-editor">
       <div class="q-row">
         <input type="text" value="${escapeAttr(q.label)}" onchange="updateQuestionLabel(${i}, this.value)" placeholder="質問内容を入力">
         <button type="button" class="danger" onclick="removeQuestion(${i})">削除</button>
       </div>
-      <label class="question-option">
-        <input type="checkbox" ${q.rating5?'checked':''} onchange="updateQuestionRating(${i}, this.checked)">
-        5段階評価にする
-        <span class="hint">（1〜5＋備考欄を表示）</span>
-      </label>
-    </div>
-  `).join('');
+      ${personal ? `
+        <div class="question-option" style="cursor:default;opacity:.72;">
+          <span>個人属性項目のため10段階評価は設定しません</span>
+        </div>` : `
+        <label class="question-option">
+          <input type="checkbox" ${q.rating5?'checked':''} onchange="updateQuestionRating(${i}, this.checked)">
+          10段階評価にする
+          <span class="hint">（1〜10＋備考欄を表示）</span>
+        </label>`}
+    </div>`;
+  }).join('');
 }
-
 function addQuestion() {
   questionDraft.push({ id: 'q_' + Math.random().toString(36).slice(2), label: '', rating5:false });
   renderQuestionList();
 }
-function updateQuestionLabel(i, val) { questionDraft[i].label = val; }
+function updateQuestionLabel(i, val) {
+  questionDraft[i].label = val;
+  if (isPersonalQuestionLabel(val)) questionDraft[i].rating5 = false;
+  renderQuestionList();
+}
 function updateQuestionRating(i, checked) { questionDraft[i].rating5 = !!checked; }
 function removeQuestion(i) { questionDraft.splice(i, 1); renderQuestionList(); }
 
 async function saveCampaign() {
   const productName = document.getElementById('f_productName').value.trim();
   if (!productName) { alert('商品名を入力してください'); return; }
-  const questions = questionDraft.filter(q => q.label.trim() !== '');
+  const questions = questionDraft.filter(q => q.label.trim() !== '').map(q => ({
+    ...q,
+    rating5: isPersonalQuestionLabel(q.label) ? false : !!q.rating5
+  }));
 
   const campaign = {
     id: editingCampaign ? editingCampaign.id : undefined,
@@ -941,6 +964,7 @@ async function renderResults() {
           <button onclick="loadResults()">表示する</button>
           <button class="excel-btn" id="excelExportBtn" onclick="exportResultsExcel()" disabled>Excelに出力</button>
         </div>
+        <div id="reviewEditWrap"></div>
         <div id="resultTableWrap"></div>
       </div>`;
     window._campaignsCache = list;
@@ -969,7 +993,7 @@ async function loadResults() {
     }
     const questions = campaign ? (campaign.questions || []) : [];
     let html = '<table><tr><th>日時</th><th>名前</th><th>部署</th>';
-    questions.forEach(q => html += `<th>${escapeHtml(q.label)}${q.rating5 ? '（5段階）' : ''}</th>`);
+    questions.forEach(q => html += `<th>${escapeHtml(q.label)}${q.rating5 ? '（10段階）' : ''}</th>`);
     html += '<th>操作</th></tr>';
     reviews.forEach((r, reviewIndex) => {
       html += `<tr><td>${formatDate(r.timestamp)}</td><td>${escapeHtml(r.reviewerName)}</td><td>${escapeHtml(r.department)}</td>`;
@@ -977,12 +1001,12 @@ async function loadResults() {
         const ans = (r.answers || {})[q.label] || '';
         if (q.rating5) {
           const note = (r.answers || {})[q.label + '__note'] || '';
-          html += `<td><span class="result-score">${escapeHtml(ans)} / 5</span>${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
+          html += `<td><span class="result-score">${escapeHtml(ans)} / 10</span>${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
         } else {
           html += `<td>${escapeHtml(ans)}</td>`;
         }
       });
-      html += `<td><button type="button" class="danger" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="deleteReviewConfirm(${reviewIndex})">削除</button></td>`;
+      html += `<td><div class="result-actions"><button type="button" class="secondary" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="editReview(${reviewIndex})">編集</button><button type="button" class="danger" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="deleteReviewConfirm(${reviewIndex})">削除</button></div></td>`;
       html += '</tr>';
     });
     html += '</table>';
@@ -992,6 +1016,96 @@ async function loadResults() {
   } catch (err) {
     window._resultsCache = null;
     wrap.innerHTML = '<div class="msg">読み込みに失敗しました: ' + err.message + '</div>';
+  }
+}
+
+function departmentOptions(selected) {
+  const departments = ['経理','広報','資材','システム','モール','営業','デザイン','店舗','商品企画','総務','人事','その他'];
+  return '<option value="">選択してください</option>' + departments.map(d => `<option value="${escapeAttr(d)}" ${d===selected?'selected':''}>${escapeHtml(d)}</option>`).join('');
+}
+
+function editReview(reviewIndex) {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const r = cache.reviews[reviewIndex];
+  const questions = (cache.campaign && cache.campaign.questions) || [];
+  let qhtml = '';
+
+  questions.forEach(q => {
+    const current = (r.answers || {})[q.label] || '';
+    if (q.label === '年代' && !q.rating5) {
+      qhtml += `<label>${escapeHtml(q.label)}</label><select name="edit_q_${q.id}">${['','20代','30代','40代','50代','60代'].map(v => `<option value="${escapeAttr(v)}" ${v===current?'selected':''}>${v||'選択してください'}</option>`).join('')}</select>`;
+    } else if (q.label === '肌質' && !q.rating5) {
+      const skinTypes = ['普通肌','乾燥肌','脂性肌（オイリー肌）','混合肌','インナードライ','敏感肌','乾燥性敏感肌','脂性・敏感肌','ニキビができやすい肌','ゆらぎ肌','その他','わからない'];
+      const selected = String(current).split('、').filter(Boolean);
+      qhtml += `<div class="skin-type-question"><label>${escapeHtml(q.label)}</label><div class="field-help">当てはまるものをすべて選択してください</div><div class="skin-type-grid">${skinTypes.map(type => `<label class="skin-type-choice"><input type="checkbox" name="edit_q_${q.id}" value="${escapeAttr(type)}" ${selected.includes(type)?'checked':''}><span>${escapeHtml(type)}</span></label>`).join('')}</div></div>`;
+    } else if (q.rating5) {
+      const note = (r.answers || {})[q.label + '__note'] || '';
+      qhtml += `<div class="rating-question"><label>${escapeHtml(q.label)}</label><div class="rating-scale">${[1,2,3,4,5,6,7,8,9,10].map(n => `<label class="rating-choice"><input type="radio" name="edit_q_${q.id}" value="${n}" ${String(current)===String(n)?'checked':''}><span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span></label>`).join('')}</div><label class="rating-note-label">備考・補足（任意）</label><textarea name="edit_q_${q.id}_note">${escapeHtml(note)}</textarea></div>`;
+    } else {
+      qhtml += `<label>${escapeHtml(q.label)}</label><textarea name="edit_q_${q.id}">${escapeHtml(current)}</textarea>`;
+    }
+  });
+
+  const wrap = document.getElementById('reviewEditWrap');
+  wrap.innerHTML = `<form id="reviewEditForm" class="edit-panel"><h3>回答を編集</h3><div class="edit-sub">${escapeHtml(formatDate(r.timestamp))} の回答</div><label>お名前</label><input type="text" name="reviewerName" value="${escapeAttr(r.reviewerName || '')}" required><label>部署</label><select name="department">${departmentOptions(r.department || '')}</select>${qhtml}<div class="actions"><button type="submit">変更を保存</button><button type="button" class="secondary" onclick="cancelReviewEdit()">キャンセル</button></div></form>`;
+  document.getElementById('reviewEditForm').addEventListener('submit', e => saveReviewEdit(e, reviewIndex));
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelReviewEdit() {
+  const wrap = document.getElementById('reviewEditWrap');
+  if (wrap) wrap.innerHTML = '';
+}
+
+async function saveReviewEdit(e, reviewIndex) {
+  e.preventDefault();
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const review = cache.reviews[reviewIndex];
+  const form = e.target;
+  const answers = {};
+  const questions = (cache.campaign && cache.campaign.questions) || [];
+
+  for (const q of questions) {
+    if (q.label === '肌質' && !q.rating5) {
+      answers[q.label] = Array.from(form.querySelectorAll(`[name="edit_q_${q.id}"]:checked`)).map(el => el.value).join('、');
+    } else if (q.rating5) {
+      const el = form.querySelector(`[name="edit_q_${q.id}"]:checked`);
+      answers[q.label] = el ? el.value : '';
+      const note = form.querySelector(`[name="edit_q_${q.id}_note"]`);
+      answers[q.label + '__note'] = note ? note.value : '';
+    } else {
+      const el = form.querySelector(`[name="edit_q_${q.id}"]`);
+      answers[q.label] = el ? el.value : '';
+    }
+  }
+
+  const saveBtn = form.querySelector('button[type="submit"]');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中…';
+  try {
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({
+        action:'updateReview',
+        password:adminPassword,
+        campaignId:cache.campaign.id,
+        reviewRow:review.reviewRow,
+        reviewerName:form.reviewerName.value,
+        department:form.department.value,
+        answers:answers
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    cancelReviewEdit();
+    await loadResults();
+  } catch (err) {
+    alert('更新に失敗しました: ' + err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = '変更を保存';
   }
 }
 
@@ -1036,7 +1150,7 @@ function exportResultsExcel() {
   const headers = ['日時','名前','部署'];
   questions.forEach(q => {
     if (q.rating5) {
-      headers.push(q.label + '（評価1〜5）');
+      headers.push(q.label + '（評価1〜10）');
       headers.push(q.label + '（備考）');
     } else {
       headers.push(q.label);
