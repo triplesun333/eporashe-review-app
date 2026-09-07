@@ -341,6 +341,66 @@
 
   input[type=checkbox]{accent-color:#c68f92;transform:translateY(1px);}
 
+  .question-editor{
+    border:1px solid var(--border);
+    background:#fffdfb;
+    border-radius:14px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .question-editor .q-row{margin-bottom:9px;}
+  .question-option{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0;
+    color:var(--text);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .question-option input{width:auto;margin:0;}
+  .question-option .hint{color:var(--sub);font-weight:500;}
+
+  .rating-question{
+    margin:16px 0 22px;
+    padding:16px;
+    border:1px solid #eadbd6;
+    border-radius:16px;
+    background:linear-gradient(145deg,#fffafa 0%,#fdf8f2 100%);
+  }
+  .rating-question>label{margin-top:0;}
+  .rating-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0 12px;}
+  .rating-choice{position:relative;}
+  .rating-choice input{position:absolute;opacity:0;pointer-events:none;}
+  .rating-choice span{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:56px;
+    border:1px solid #e4d4cf;
+    border-radius:12px;
+    background:#fff;
+    color:#76625e;
+    font-weight:800;
+    cursor:pointer;
+    transition:.18s ease;
+  }
+  .rating-choice span small{font-size:10px;font-weight:600;color:var(--sub);margin-top:2px;}
+  .rating-choice input:checked+span{
+    background:linear-gradient(135deg,#d7a7a9,#c48c91);
+    border-color:#c48c91;
+    color:#fff;
+    box-shadow:0 5px 14px rgba(171,115,120,.18);
+  }
+  .rating-choice input:checked+span small{color:#fff8f8;}
+  .rating-note-label{font-size:12px!important;margin:8px 0 5px!important;color:var(--sub)!important;}
+  .rating-question textarea{min-height:68px;}
+  .result-score{font-weight:800;color:var(--rose-deep);white-space:nowrap;}
+  .result-note{display:block;margin-top:5px;color:var(--sub);font-size:11px;line-height:1.45;white-space:pre-wrap;}
+  .excel-btn{background:#fff;color:#6e5a55;border:1px solid #d7c1ba;}
+
   @media (max-width:640px){
     body{padding:20px 12px 50px;}
     .sub-title{margin-bottom:20px;}
@@ -455,9 +515,25 @@ function renderReviewForm() {
   const c = selectedCampaign;
   let questionsHtml = '';
   (c.questions || []).forEach(q => {
-    questionsHtml += `
-      <label>${escapeHtml(q.label)}<span class="required">※</span></label>
-      <textarea name="q_${q.id}" required></textarea>`;
+    if (q.rating5) {
+      questionsHtml += `
+        <div class="rating-question">
+          <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+          <div class="rating-scale" role="radiogroup" aria-label="${escapeAttr(q.label)} 5段階評価">
+            ${[1,2,3,4,5].map(n => `
+              <label class="rating-choice">
+                <input type="radio" name="q_${q.id}" value="${n}" required>
+                <span>${n}<small>${n===1?'低い':n===5?'高い':''}</small></span>
+              </label>`).join('')}
+          </div>
+          <label class="rating-note-label">備考・補足（任意）</label>
+          <textarea name="q_${q.id}_note" placeholder="評価について補足があれば入力してください"></textarea>
+        </div>`;
+    } else {
+      questionsHtml += `
+        <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+        <textarea name="q_${q.id}" required></textarea>`;
+    }
   });
 
   app.innerHTML = `
@@ -491,8 +567,12 @@ async function onSubmitReview(e) {
 
   const answers = {};
   (selectedCampaign.questions || []).forEach(q => {
-    const el = form.querySelector(`[name="q_${q.id}"]`);
+    const el = form.querySelector(`[name="q_${q.id}"]:checked`) || form.querySelector(`[name="q_${q.id}"]`);
     answers[q.label] = el ? el.value : '';
+    if (q.rating5) {
+      const note = form.querySelector(`[name="q_${q.id}_note"]`);
+      answers[q.label + '__note'] = note ? note.value : '';
+    }
   });
 
   const payload = {
@@ -636,35 +716,43 @@ function renderNewForm() {
 
 function defaultQuestions() {
   return [
-    {id:'q_'+Math.random().toString(36).slice(2), label:'年代'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'肌質'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'第一印象'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'感想'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'お客様受け'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度（10点中）'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'個人一言コメント'}
+    {id:'q_'+Math.random().toString(36).slice(2), label:'年代', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'肌質', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'第一印象', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'感想', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'お客様受け', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度（10点中）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'個人一言コメント', rating5:false}
   ];
 }
 
 function renderQuestionList() {
   const el = document.getElementById('questionList');
   el.innerHTML = questionDraft.map((q, i) => `
-    <div class="q-row">
-      <input type="text" value="${escapeAttr(q.label)}" onchange="updateQuestionLabel(${i}, this.value)">
-      <button type="button" class="danger" onclick="removeQuestion(${i})">削除</button>
+    <div class="question-editor">
+      <div class="q-row">
+        <input type="text" value="${escapeAttr(q.label)}" onchange="updateQuestionLabel(${i}, this.value)" placeholder="質問内容を入力">
+        <button type="button" class="danger" onclick="removeQuestion(${i})">削除</button>
+      </div>
+      <label class="question-option">
+        <input type="checkbox" ${q.rating5?'checked':''} onchange="updateQuestionRating(${i}, this.checked)">
+        5段階評価にする
+        <span class="hint">（1〜5＋備考欄を表示）</span>
+      </label>
     </div>
   `).join('');
 }
 
 function addQuestion() {
-  questionDraft.push({ id: 'q_' + Math.random().toString(36).slice(2), label: '' });
+  questionDraft.push({ id: 'q_' + Math.random().toString(36).slice(2), label: '', rating5:false });
   renderQuestionList();
 }
 function updateQuestionLabel(i, val) { questionDraft[i].label = val; }
+function updateQuestionRating(i, checked) { questionDraft[i].rating5 = !!checked; }
 function removeQuestion(i) { questionDraft.splice(i, 1); renderQuestionList(); }
 
 async function saveCampaign() {
@@ -774,6 +862,7 @@ async function renderResults() {
         <select id="resultSelect">${opts}</select>
         <div class="actions">
           <button onclick="loadResults()">表示する</button>
+          <button class="excel-btn" id="excelExportBtn" onclick="exportResultsExcel()" disabled>Excelに出力</button>
         </div>
         <div id="resultTableWrap"></div>
       </div>`;
@@ -789,29 +878,108 @@ async function loadResults() {
   const campaignId = select.value;
   const campaign = (window._campaignsCache || []).find(c => c.id === campaignId);
   const wrap = document.getElementById('resultTableWrap');
+  const exportBtn = document.getElementById('excelExportBtn');
+  if (exportBtn) exportBtn.disabled = true;
   wrap.innerHTML = '<div class="msg">読み込み中…</div>';
   try {
     const res = await fetch(GAS_URL + '?action=getReviews&campaignId=' + encodeURIComponent(campaignId) + '&password=' + encodeURIComponent(adminPassword));
     const reviews = await res.json();
     if (reviews.error) throw new Error(reviews.error);
     if (!reviews.length) {
+      window._resultsCache = null;
       wrap.innerHTML = '<div class="msg">まだ回答がありません。</div>';
       return;
     }
-    const qLabels = (campaign ? campaign.questions : []).map(q => q.label);
+    const questions = campaign ? (campaign.questions || []) : [];
     let html = '<table><tr><th>日時</th><th>名前</th><th>部署</th>';
-    qLabels.forEach(l => html += `<th>${escapeHtml(l)}</th>`);
+    questions.forEach(q => html += `<th>${escapeHtml(q.label)}${q.rating5 ? '（5段階）' : ''}</th>`);
     html += '</tr>';
     reviews.forEach(r => {
       html += `<tr><td>${formatDate(r.timestamp)}</td><td>${escapeHtml(r.reviewerName)}</td><td>${escapeHtml(r.department)}</td>`;
-      qLabels.forEach(l => html += `<td>${escapeHtml((r.answers||{})[l] || '')}</td>`);
+      questions.forEach(q => {
+        const ans = (r.answers || {})[q.label] || '';
+        if (q.rating5) {
+          const note = (r.answers || {})[q.label + '__note'] || '';
+          html += `<td><span class="result-score">${escapeHtml(ans)} / 5</span>${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
+        } else {
+          html += `<td>${escapeHtml(ans)}</td>`;
+        }
+      });
       html += '</tr>';
     });
     html += '</table>';
     wrap.innerHTML = html;
+    window._resultsCache = { campaign, reviews };
+    if (exportBtn) exportBtn.disabled = false;
   } catch (err) {
+    window._resultsCache = null;
     wrap.innerHTML = '<div class="msg">読み込みに失敗しました: ' + err.message + '</div>';
   }
+}
+
+function xmlEscape(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+function exportResultsExcel() {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews.length) {
+    alert('出力できる回答がありません');
+    return;
+  }
+
+  const campaign = cache.campaign || { productName:'レビュー結果', questions:[] };
+  const questions = campaign.questions || [];
+  const headers = ['日時','名前','部署'];
+  questions.forEach(q => {
+    if (q.rating5) {
+      headers.push(q.label + '（評価1〜5）');
+      headers.push(q.label + '（備考）');
+    } else {
+      headers.push(q.label);
+    }
+  });
+
+  const rows = cache.reviews.map(r => {
+    const row = [formatDate(r.timestamp), r.reviewerName || '', r.department || ''];
+    questions.forEach(q => {
+      const answers = r.answers || {};
+      row.push(answers[q.label] || '');
+      if (q.rating5) row.push(answers[q.label + '__note'] || '');
+    });
+    return row;
+  });
+
+  const cell = v => `<Cell><Data ss:Type="String">${xmlEscape(v)}</Data></Cell>`;
+  const rowXml = values => `<Row>${values.map(cell).join('')}</Row>`;
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#F3E5E1" ss:Pattern="Solid"/></Style>
+ </Styles>
+ <Worksheet ss:Name="レビュー結果">
+  <Table>
+   <Row>${headers.map(h => `<Cell ss:StyleID="Header"><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`).join('')}</Row>
+   ${rows.map(rowXml).join('')}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+  const blob = new Blob(['\ufeff', xml], { type:'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = String(campaign.productName || 'レビュー結果').replace(/[\\/:*?"<>|]/g,'_');
+  a.href = url;
+  a.download = safeName + '_レビュー結果.xls';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function formatDate(v) {
