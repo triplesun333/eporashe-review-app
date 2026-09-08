@@ -1000,8 +1000,11 @@ async function loadResults() {
       questions.forEach(q => {
         const ans = (r.answers || {})[q.label] || '';
         if (q.rating5) {
-          const note = (r.answers || {})[q.label + '__note'] || '';
-          html += `<td><span class="result-score">${escapeHtml(ans)} / 10</span>${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
+          const isNumericRating = /^(10|[1-9])$/.test(String(ans).trim());
+          const savedNote = (r.answers || {})[q.label + '__note'] || '';
+          const note = savedNote || (!isNumericRating ? ans : '');
+          const score = isNumericRating ? ans : '';
+          html += `<td>${score ? `<span class="result-score">${escapeHtml(score)} / 10</span>` : '<span class="muted">未評価</span>'}${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
         } else {
           html += `<td>${escapeHtml(ans)}</td>`;
         }
@@ -1040,8 +1043,13 @@ function editReview(reviewIndex) {
       const selected = String(current).split('、').filter(Boolean);
       qhtml += `<div class="skin-type-question"><label>${escapeHtml(q.label)}</label><div class="field-help">当てはまるものをすべて選択してください</div><div class="skin-type-grid">${skinTypes.map(type => `<label class="skin-type-choice"><input type="checkbox" name="edit_q_${q.id}" value="${escapeAttr(type)}" ${selected.includes(type)?'checked':''}><span>${escapeHtml(type)}</span></label>`).join('')}</div></div>`;
     } else if (q.rating5) {
-      const note = (r.answers || {})[q.label + '__note'] || '';
-      qhtml += `<div class="rating-question"><label>${escapeHtml(q.label)}</label><div class="rating-scale">${[1,2,3,4,5,6,7,8,9,10].map(n => `<label class="rating-choice"><input type="radio" name="edit_q_${q.id}" value="${n}" ${String(current)===String(n)?'checked':''}><span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span></label>`).join('')}</div><label class="rating-note-label">備考・補足（任意）</label><textarea name="edit_q_${q.id}_note">${escapeHtml(note)}</textarea></div>`;
+      const isNumericRating = /^(10|[1-9])$/.test(String(current).trim());
+      const savedNote = (r.answers || {})[q.label + '__note'] || '';
+      // 以前は文章回答だった質問を後から10段階評価へ変更しても、
+      // 旧文章を「備考・補足」として残して編集できるようにする。
+      const note = savedNote || (!isNumericRating ? current : '');
+      const ratingValue = isNumericRating ? String(current) : '';
+      qhtml += `<div class="rating-question"><label>${escapeHtml(q.label)}</label><div class="rating-scale">${[1,2,3,4,5,6,7,8,9,10].map(n => `<label class="rating-choice"><input type="radio" name="edit_q_${q.id}" value="${n}" ${ratingValue===String(n)?'checked':''}><span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span></label>`).join('')}</div><label class="rating-note-label">備考・補足（任意）</label><textarea name="edit_q_${q.id}_note">${escapeHtml(note)}</textarea></div>`;
     } else {
       qhtml += `<label>${escapeHtml(q.label)}</label><textarea name="edit_q_${q.id}">${escapeHtml(current)}</textarea>`;
     }
@@ -1162,9 +1170,11 @@ function exportResultsExcel() {
     questions.forEach(q => {
       const answers = r.answers || {};
       if (q.rating5) {
-        const score = answers[q.label] || '';
-        row.push(score === '' ? '' : Number(score));
-        row.push(answers[q.label + '__note'] || '');
+        const raw = answers[q.label] || '';
+        const isNumericRating = /^(10|[1-9])$/.test(String(raw).trim());
+        const savedNote = answers[q.label + '__note'] || '';
+        row.push(isNumericRating ? Number(raw) : '');
+        row.push(savedNote || (!isNumericRating ? raw : ''));
       } else {
         row.push(answers[q.label] || '');
       }
