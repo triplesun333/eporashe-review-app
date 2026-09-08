@@ -175,6 +175,13 @@
     border-radius:4px;
     background:linear-gradient(var(--pink-300),var(--rose));
   }
+  .product-header{display:flex;align-items:center;gap:18px;}
+  .product-image{width:116px;height:116px;flex:0 0 116px;object-fit:cover;border-radius:18px;border:1px solid var(--border);background:var(--beige-50);box-shadow:0 8px 20px rgba(126,91,85,.10);}
+  .product-copy{min-width:0;flex:1;}
+  .image-upload-box{padding:14px;border:1px dashed #d8bbb7;border-radius:14px;background:#fffafa;}
+  .image-preview{display:flex;align-items:center;gap:14px;margin-top:12px;}
+  .image-preview img{width:96px;height:96px;object-fit:cover;border-radius:14px;border:1px solid var(--border);}
+  .image-status{font-size:12px;color:var(--sub);line-height:1.6;}
   .product-features{
     font-size:13px;
     line-height:1.9;
@@ -409,6 +416,8 @@
     .main-tab-btn{font-size:13px;padding:12px 8px;}
     .tab-btn{flex:1 1 100%;}
     .product-name{font-size:19px;}
+    .product-header{align-items:flex-start;gap:12px;}
+    .product-image{width:86px;height:86px;flex-basis:86px;border-radius:14px;}
     .campaign-list-item{align-items:stretch;}
     .campaign-list-item .info{min-width:100%;}
     .campaign-list-item button{flex:1;}
@@ -597,9 +606,14 @@ function renderReviewForm() {
 
   app.innerHTML = `
     <div class="card">
+      <div class="product-header">
+        ${c.imageUrl ? `<img class="product-image" src="${escapeAttr(c.imageUrl)}" alt="商品画像" onerror="this.style.display='none'">` : ''}
+        <div class="product-copy">
       <div class="product-name">${escapeHtml(c.productName)}</div>
       ${c.features ? `<div class="product-features">${escapeHtml(c.features)}</div>` : ''}
       ${c.deadline ? `<div class="deadline">入力期限：${escapeHtml(c.deadline)}</div>` : ''}
+        </div>
+      </div>
     </div>
     <form id="reviewForm" class="card">
       <label>お名前<span class="required">※</span></label>
@@ -700,6 +714,8 @@ let adminPassword = sessionStorage.getItem('review_admin_pw') || '';
 let adminTab = 'new';
 let editingCampaign = null;
 let questionDraft = [];
+let pendingImageDataUrl = '';
+let removeExistingImage = false;
 
 function renderAdminInit() {
   if (adminPassword) {
@@ -768,12 +784,24 @@ function switchAdminTab(tab) {
 function renderNewForm() {
   const c = editingCampaign || { productName:'', features:'', deadline:'', active:true, questions: defaultQuestions() };
   questionDraft = JSON.parse(JSON.stringify(c.questions || []));
+  pendingImageDataUrl = '';
+  removeExistingImage = false;
 
   const body = document.getElementById('adminBody');
   body.innerHTML = `
     <div class="card">
       <label>商品名<span class="required">※</span></label>
       <input type="text" id="f_productName" value="${escapeAttr(c.productName)}">
+
+      <label>商品画像（任意）</label>
+      <div class="image-upload-box">
+        <input type="file" id="f_productImage" accept="image/jpeg,image/png,image/webp" onchange="handleProductImage(event)">
+        <div class="field-help" style="margin:8px 0 0;">JPEG・PNG・WebP。自動で縮小して保存します。</div>
+        <div id="imagePreview" class="image-preview" ${c.imageUrl ? '' : 'style="display:none"'}>
+          <img id="imagePreviewImg" src="${escapeAttr(c.imageUrl || '')}" alt="商品画像プレビュー">
+          <div><div id="imageStatus" class="image-status">${c.imageUrl ? '現在登録されている画像です' : ''}</div><button type="button" class="danger" style="margin-top:7px;padding:7px 10px;font-size:12px" onclick="clearProductImage()">画像を削除</button></div>
+        </div>
+      </div>
 
       <label>特徴・説明（レビュー画面に表示されます）</label>
       <textarea id="f_features">${escapeHtml(c.features)}</textarea>
@@ -796,6 +824,61 @@ function renderNewForm() {
     </div>
   `;
   renderQuestionList();
+}
+
+async function handleProductImage(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    alert('JPEG・PNG・WebP画像を選んでください');
+    event.target.value = '';
+    return;
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    alert('元画像は12MB以下にしてください');
+    event.target.value = '';
+    return;
+  }
+  try {
+    pendingImageDataUrl = await resizeImage(file, 1200, 0.84);
+    removeExistingImage = false;
+    document.getElementById('imagePreviewImg').src = pendingImageDataUrl;
+    document.getElementById('imagePreview').style.display = 'flex';
+    document.getElementById('imageStatus').textContent = 'この画像を保存します';
+  } catch (err) {
+    alert('画像を読み込めませんでした: ' + err.message);
+    event.target.value = '';
+  }
+}
+
+function resizeImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('画像形式を確認してください'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearProductImage() {
+  pendingImageDataUrl = '';
+  removeExistingImage = true;
+  const input = document.getElementById('f_productImage');
+  if (input) input.value = '';
+  const preview = document.getElementById('imagePreview');
+  if (preview) preview.style.display = 'none';
 }
 
 function defaultQuestions() {
@@ -866,7 +949,11 @@ async function saveCampaign() {
     features: document.getElementById('f_features').value,
     deadline: document.getElementById('f_deadline').value,
     active: document.getElementById('f_active').checked,
-    questions: questions
+    questions: questions,
+    imageUrl: editingCampaign ? (editingCampaign.imageUrl || '') : '',
+    imageFileId: editingCampaign ? (editingCampaign.imageFileId || '') : '',
+    imageDataUrl: pendingImageDataUrl,
+    removeImage: removeExistingImage
   };
 
   try {
