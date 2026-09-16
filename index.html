@@ -6,95 +6,445 @@
 <title>試作品レビューアプリ｜エポラーシェ</title>
 <style>
   :root{
-    --main:#b98a5e;
-    --main-dark:#8a6540;
-    --bg:#faf6f1;
-    --card:#ffffff;
-    --border:#e6ddd2;
-    --text:#3a332c;
-    --sub:#8a7f70;
+    --pink-50:#fff8f8;
+    --pink-100:#fbeeee;
+    --pink-200:#f4dede;
+    --pink-300:#e9c9c9;
+    --beige-50:#fdfaf6;
+    --beige-100:#f7f0e8;
+    --beige-200:#eadfd2;
+    --rose:#c68f92;
+    --rose-dark:#9d686d;
+    --rose-deep:#7c5055;
+    --text:#403634;
+    --sub:#766966;
+    --muted:#9b8f8b;
+    --card:rgba(255,255,255,.92);
+    --white:#fff;
+    --border:#eadfda;
+    --success-bg:#edf6ef;
+    --success:#55785e;
+    --danger:#b76666;
+    --shadow:0 10px 30px rgba(126,91,85,.08);
+    --shadow-hover:0 14px 34px rgba(126,91,85,.13);
+    --radius-lg:22px;
+    --radius-md:15px;
+    --radius-sm:11px;
   }
+
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
     margin:0;
-    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
-    background:var(--bg);
+    min-height:100vh;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(246,220,220,.75), transparent 30%),
+      radial-gradient(circle at 88% 8%, rgba(239,229,215,.82), transparent 31%),
+      linear-gradient(180deg,#fffaf9 0%,#fbf6f1 48%,#f8f2ec 100%);
     color:var(--text);
-    padding:20px 16px 60px;
+    padding:28px 16px 72px;
+    letter-spacing:.01em;
   }
-  .wrap{max-width:760px;margin:0 auto;}
-  h1{font-size:19px;text-align:center;margin-bottom:4px;color:var(--main-dark);}
-  .sub-title{text-align:center;color:var(--sub);font-size:13px;margin-bottom:20px;}
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+    background-size:32px 32px;
+    mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 60%);
+  }
 
-  /* 上部の大タブ（レビュー入力／管理者用） */
-  .main-tabs{display:flex;gap:8px;margin-bottom:20px;}
-  .main-tab-btn{
-    flex:1;padding:12px;border:1px solid var(--border);background:#fff;
-    border-radius:10px;cursor:pointer;font-size:14px;font-weight:bold;color:var(--sub);
+  .wrap{max-width:820px;margin:0 auto;position:relative;z-index:1;}
+  h1{
+    font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+    font-size:clamp(23px,4vw,32px);
+    font-weight:700;
+    text-align:center;
+    margin:12px 0 7px;
+    color:var(--rose-deep);
+    letter-spacing:.08em;
   }
-  .main-tab-btn.active{background:var(--main-dark);color:#fff;border-color:var(--main-dark);}
+  h1::before{
+    content:"EPORASHE";
+    display:block;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.32em;
+    color:var(--rose);
+    margin-bottom:8px;
+  }
+  .sub-title{
+    text-align:center;
+    color:var(--sub);
+    font-size:12px;
+    letter-spacing:.12em;
+    margin-bottom:28px;
+  }
+
+  /* 上部の大タブ */
+  .main-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:6px;
+    margin-bottom:22px;
+    background:rgba(255,255,255,.68);
+    border:1px solid rgba(234,223,218,.9);
+    border-radius:18px;
+    box-shadow:0 5px 20px rgba(126,91,85,.06);
+    backdrop-filter:blur(10px);
+  }
+  .main-tab-btn{
+    padding:13px 14px;
+    border:0;
+    background:transparent;
+    border-radius:13px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:700;
+    color:var(--sub);
+    transition:.2s ease;
+  }
+  .main-tab-btn:hover{background:var(--pink-50);color:var(--rose-dark);}
+  .main-tab-btn.active{
+    background:linear-gradient(135deg,#d9aaa9 0%,#bf8588 100%);
+    color:#fff;
+    box-shadow:0 8px 20px rgba(181,125,129,.23);
+  }
 
   /* 管理者内の小タブ */
-  .sub-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-  .tab-btn{
-    padding:9px 14px;border:1px solid var(--border);background:#fff;
-    border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;color:var(--sub);
+  .sub-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    padding:5px;
+    background:rgba(255,255,255,.65);
+    border:1px solid var(--border);
+    border-radius:16px;
   }
-  .tab-btn.active{background:var(--main);color:#fff;border-color:var(--main);}
+  .tab-btn{
+    flex:1 1 150px;
+    padding:10px 14px;
+    border:0;
+    background:transparent;
+    border-radius:11px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+    color:var(--sub);
+    transition:.2s ease;
+  }
+  .tab-btn:hover{background:var(--beige-50);color:var(--rose-dark);}
+  .tab-btn.active{
+    background:var(--beige-100);
+    color:var(--rose-deep);
+    box-shadow:inset 0 0 0 1px var(--beige-200);
+  }
 
   .card{
-    background:var(--card);border:1px solid var(--border);border-radius:12px;
-    padding:20px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,0.04);
+    background:var(--card);
+    border:1px solid rgba(234,223,218,.95);
+    border-radius:var(--radius-lg);
+    padding:24px;
+    margin-bottom:18px;
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(8px);
   }
-  .product-name{font-size:17px;font-weight:bold;color:var(--main-dark);margin-bottom:6px;}
-  .product-features{
-    font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;
-    background:var(--bg);padding:12px;border-radius:8px;
-  }
-  .deadline{font-size:12px;color:#b25c5c;margin-top:8px;}
+  .card:hover{box-shadow:var(--shadow-hover);}
 
-  label{display:block;font-size:13px;font-weight:bold;margin:14px 0 6px;color:var(--main-dark);}
-  input[type=text], input[type=date], select, textarea{
-    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;
-    font-size:14px;font-family:inherit;background:#fff;color:var(--text);
+  .product-name{
+    font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+    font-size:22px;
+    font-weight:700;
+    color:var(--rose-deep);
+    margin-bottom:10px;
+    padding-left:15px;
+    position:relative;
   }
-  textarea{min-height:80px;resize:vertical;}
+  .product-name::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:4px;
+    bottom:4px;
+    width:4px;
+    border-radius:4px;
+    background:linear-gradient(var(--pink-300),var(--rose));
+  }
+  .product-header{display:flex;align-items:center;gap:18px;}
+  .product-image{width:116px;height:116px;flex:0 0 116px;object-fit:cover;border-radius:18px;border:1px solid var(--border);background:var(--beige-50);box-shadow:0 8px 20px rgba(126,91,85,.10);}
+  .product-copy{min-width:0;flex:1;}
+  .image-upload-box{padding:14px;border:1px dashed #d8bbb7;border-radius:14px;background:#fffafa;}
+  .image-preview{display:flex;align-items:center;gap:14px;margin-top:12px;}
+  .image-preview img{width:96px;height:96px;object-fit:cover;border-radius:14px;border:1px solid var(--border);}
+  .image-status{font-size:12px;color:var(--sub);line-height:1.6;}
+  .draft-note{margin:13px 0 0;color:var(--sub);font-size:11px;line-height:1.7;}
+  .product-features{
+    font-size:13px;
+    line-height:1.9;
+    color:var(--text);
+    white-space:pre-wrap;
+    background:linear-gradient(135deg,var(--beige-50),#fff9f8);
+    padding:15px 16px;
+    border:1px solid #f0e6df;
+    border-radius:14px;
+  }
+  .deadline{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:700;
+    color:#a55f63;
+    margin-top:12px;
+    padding:6px 10px;
+    background:#fff2f2;
+    border-radius:999px;
+  }
+  .deadline::before{content:"◷";font-size:13px;}
+
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:700;
+    margin:18px 0 7px;
+    color:#5d4b48;
+  }
+  input[type=text], input[type=date], select, textarea{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid #dfd4ce;
+    border-radius:12px;
+    font-size:14px;
+    font-family:inherit;
+    background:rgba(255,255,255,.96);
+    color:var(--text);
+    outline:none;
+    transition:border-color .18s,box-shadow .18s,background .18s;
+  }
+  input[type=text]::placeholder,textarea::placeholder{color:#b2a6a1;}
+  input[type=text]:focus,input[type=date]:focus,select:focus,textarea:focus{
+    border-color:#d0a4a5;
+    box-shadow:0 0 0 4px rgba(208,164,165,.13);
+    background:#fff;
+  }
+  textarea{min-height:100px;resize:vertical;line-height:1.7;}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#9d7777 50%),linear-gradient(135deg,#9d7777 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:38px;}
 
   button{
-    padding:11px 18px;background:var(--main);color:#fff;font-size:14px;font-weight:bold;
-    border:none;border-radius:8px;cursor:pointer;
+    padding:11px 18px;
+    background:linear-gradient(135deg,#cf9b9d 0%,#b97f83 100%);
+    color:#fff;
+    font-size:14px;
+    font-weight:700;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(185,127,131,.18);
+    transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease;
   }
-  button.block{width:100%;padding:14px;margin-top:20px;}
-  button.secondary{background:#fff;color:var(--main-dark);border:1px solid var(--main);}
-  button.danger{background:#fff;color:#b25c5c;border:1px solid #b25c5c;}
-  button:disabled{background:#ccc;cursor:default;}
-  button:hover:not(:disabled){opacity:0.85;}
+  button.block{width:100%;padding:15px;margin-top:24px;font-size:15px;letter-spacing:.04em;}
+  button.secondary{background:#fff;color:var(--rose-dark);border:1px solid #d8b7b5;box-shadow:none;}
+  button.danger{background:#fff;color:var(--danger);border:1px solid #e3bcbc;box-shadow:none;}
+  button:disabled{background:#d6ceca;color:#fff;cursor:default;box-shadow:none;}
+  button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 9px 20px rgba(185,127,131,.23);}
+  button.secondary:hover:not(:disabled),button.danger:hover:not(:disabled){box-shadow:0 6px 14px rgba(112,82,77,.09);}
 
-  .q-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
-  .q-row input{flex:1;}
-  .q-row button{flex-shrink:0;padding:8px 10px;}
-  .actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+  .q-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:9px;
+    padding:8px;
+    border-radius:13px;
+    background:var(--beige-50);
+    border:1px solid #f0e6df;
+  }
+  .q-row input{flex:1;background:#fff;}
+  .q-row button{flex-shrink:0;padding:9px 11px;}
+  .actions{display:flex;gap:9px;margin-top:22px;flex-wrap:wrap;}
 
   .campaign-list-item{
-    border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;
-    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    border:1px solid var(--border);
+    border-radius:15px;
+    padding:14px 15px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    background:linear-gradient(135deg,#fff,var(--beige-50));
   }
-  .campaign-list-item .info{flex:1;min-width:200px;}
-  .campaign-list-item .info .name{font-weight:bold;color:var(--main-dark);}
-  .campaign-list-item .info .meta{font-size:12px;color:var(--sub);}
-  .badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f3e6;color:#4a7a45;}
-  .badge.off{background:#eee;color:#999;}
+  .campaign-list-item .info{flex:1;min-width:210px;}
+  .campaign-list-item .info .name{font-weight:800;color:var(--rose-deep);font-size:14px;}
+  .campaign-list-item .info .meta{font-size:12px;color:var(--sub);margin-top:3px;}
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    padding:5px 9px;
+    border-radius:999px;
+    background:var(--success-bg);
+    color:var(--success);
+    border:1px solid #dcebdd;
+  }
+  .badge.off{background:#f1efed;color:#938985;border-color:#e5dfdb;}
 
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
-  th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top;}
-  th{background:var(--bg);white-space:nowrap;}
+  #resultTableWrap{overflow-x:auto;margin-top:16px;border-radius:14px;}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;min-width:720px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px;text-align:left;vertical-align:top;line-height:1.55;}
+  th:last-child,td:last-child{border-right:none;}
+  tr:last-child td{border-bottom:none;}
+  th{background:var(--beige-100);white-space:nowrap;color:#665552;font-weight:800;position:sticky;top:0;}
+  tr:nth-child(even) td{background:#fffdfb;}
 
-  .login-box{max-width:360px;margin:40px auto;text-align:center;}
-  .msg{text-align:center;padding:30px 16px;color:var(--sub);}
-  .success{text-align:center;padding:40px 16px;}
-  .success h2{color:var(--main-dark);margin-bottom:8px;}
-  .required{color:#b25c5c;font-weight:normal;margin-left:4px;}
+  .login-box{max-width:400px;margin:36px auto;text-align:left;}
+  .login-box::before{
+    content:"ADMIN";
+    display:block;
+    text-align:center;
+    font-family:Georgia,serif;
+    letter-spacing:.22em;
+    color:var(--rose);
+    font-size:11px;
+    margin-bottom:10px;
+  }
+  .msg{
+    text-align:center;
+    padding:34px 18px;
+    color:var(--sub);
+    line-height:1.8;
+    background:rgba(255,255,255,.45);
+    border:1px dashed #e2d4ce;
+    border-radius:18px;
+  }
+  .success{
+    text-align:center;
+    padding:48px 22px;
+    background:rgba(255,255,255,.78);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+  }
+  .success::before{
+    content:"✓";
+    display:grid;
+    place-items:center;
+    width:54px;
+    height:54px;
+    margin:0 auto 14px;
+    border-radius:50%;
+    background:var(--success-bg);
+    color:var(--success);
+    font-size:27px;
+    font-weight:700;
+  }
+  .success h2{color:var(--rose-deep);margin-bottom:8px;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;}
+  .success p{color:var(--sub);margin-bottom:20px;}
+  .required{color:#b86767;font-weight:700;margin-left:4px;}
+
+  input[type=checkbox]{accent-color:#c68f92;transform:translateY(1px);}
+
+  .question-editor{
+    border:1px solid var(--border);
+    background:#fffdfb;
+    border-radius:14px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .question-editor .q-row{margin-bottom:9px;}
+  .question-option{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0;
+    color:var(--text);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .question-option input{width:auto;margin:0;}
+  .question-option .hint{color:var(--sub);font-weight:500;}
+
+  .rating-question{
+    margin:16px 0 22px;
+    padding:16px;
+    border:1px solid #eadbd6;
+    border-radius:16px;
+    background:linear-gradient(145deg,#fffafa 0%,#fdf8f2 100%);
+  }
+  .rating-question>label{margin-top:0;}
+  .rating-scale{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:10px 0 12px;}
+  .rating-choice{position:relative;}
+  .rating-choice input{position:absolute;opacity:0;pointer-events:none;}
+  .rating-choice span{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:56px;
+    border:1px solid #e4d4cf;
+    border-radius:12px;
+    background:#fff;
+    color:#76625e;
+    font-weight:800;
+    cursor:pointer;
+    transition:.18s ease;
+  }
+  .rating-choice span small{font-size:10px;font-weight:600;color:var(--sub);margin-top:2px;}
+  .rating-choice input:checked+span{
+    background:linear-gradient(135deg,#d7a7a9,#c48c91);
+    border-color:#c48c91;
+    color:#fff;
+    box-shadow:0 5px 14px rgba(171,115,120,.18);
+  }
+  .rating-choice input:checked+span small{color:#fff8f8;}
+  .rating-note-label{font-size:12px!important;margin:8px 0 5px!important;color:var(--sub)!important;}
+  .rating-question textarea{min-height:68px;}
+  .result-score{font-weight:800;color:var(--rose-deep);white-space:nowrap;}
+  .result-note{display:block;margin-top:5px;color:var(--sub);font-size:11px;line-height:1.45;white-space:pre-wrap;}
+  .excel-btn{background:#fff;color:#6e5a55;border:1px solid #d7c1ba;}
+
+  @media (max-width:640px){
+    body{padding:20px 12px 50px;}
+    .sub-title{margin-bottom:20px;}
+    .card{padding:18px;border-radius:18px;}
+    .main-tabs{border-radius:15px;}
+    .main-tab-btn{font-size:13px;padding:12px 8px;}
+    .tab-btn{flex:1 1 100%;}
+    .product-name{font-size:19px;}
+    .product-header{align-items:flex-start;gap:12px;}
+    .product-image{width:86px;height:86px;flex-basis:86px;border-radius:14px;}
+    .campaign-list-item{align-items:stretch;}
+    .campaign-list-item .info{min-width:100%;}
+    .campaign-list-item button{flex:1;}
+    .actions>button{flex:1 1 160px;}
+    .q-row{align-items:stretch;}
+    .q-row button{padding-inline:10px;}
+  }
+
+  .field-help{font-size:12px;color:var(--sub);margin:-2px 0 10px;}
+  .skin-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
+  .skin-type-choice{display:flex;align-items:center;gap:9px;margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-weight:500;cursor:pointer;transition:.18s ease;}
+  .skin-type-choice:hover{border-color:var(--main);background:#fffaf8;}
+  .skin-type-choice input{width:17px;height:17px;accent-color:var(--main);flex-shrink:0;}
+  .skin-type-choice:has(input:checked){border-color:var(--main);background:#fff5f3;box-shadow:0 0 0 1px rgba(185,138,94,.06);}
+  .skin-type-unknown{margin-top:8px;max-width:220px;}
+  @media(max-width:560px){.skin-type-grid{grid-template-columns:1fr;}.skin-type-unknown{max-width:none;}}
+
+
+  .result-actions{display:flex;gap:6px;flex-wrap:wrap;min-width:118px;}
+  .edit-panel{margin:16px 0;padding:18px;border:1px solid var(--border);border-radius:14px;background:#fffaf8;}
+  .edit-panel h3{margin:0 0 6px;color:var(--main-dark);font-size:16px;}
+  .edit-panel .edit-sub{font-size:12px;color:var(--sub);margin-bottom:14px;}
+  @media(max-width:700px){.rating-scale{grid-template-columns:repeat(5,1fr);}.rating-choice span{min-height:48px;}}
+
 </style>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -193,89 +543,152 @@ function renderReviewForm() {
   const c = selectedCampaign;
   let questionsHtml = '';
   (c.questions || []).forEach(q => {
-    questionsHtml += `
-      <label>${escapeHtml(q.label)}<span class="required">※</span></label>
-      <textarea name="q_${q.id}" required></textarea>`;
+    if (q.label === '年代' && !q.rating5) {
+      questionsHtml += `
+        <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+        <select name="q_${q.id}" required>
+          <option value="">選択してください</option>
+          <option value="20代">20代</option>
+          <option value="30代">30代</option>
+          <option value="40代">40代</option>
+          <option value="50代">50代</option>
+          <option value="60代">60代</option>
+        </select>`;
+    } else if (q.label === '肌質' && !q.rating5) {
+      const skinTypes = [
+        '普通肌',
+        '乾燥肌',
+        '脂性肌（オイリー肌）',
+        '混合肌',
+        'インナードライ',
+        '敏感肌',
+        '乾燥性敏感肌',
+        '脂性・敏感肌',
+        'ニキビができやすい肌',
+        'ゆらぎ肌',
+        'その他'
+      ];
+      questionsHtml += `
+        <div class="skin-type-question">
+          <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+          <div class="field-help">当てはまるものをすべて選択してください</div>
+          <div class="skin-type-grid">
+            ${skinTypes.map(type => `
+              <label class="skin-type-choice">
+                <input type="checkbox" name="q_${q.id}" value="${escapeAttr(type)}">
+                <span>${escapeHtml(type)}</span>
+              </label>`).join('')}
+          </div>
+          <label class="skin-type-choice skin-type-unknown">
+            <input type="checkbox" name="q_${q.id}" value="わからない">
+            <span>わからない</span>
+          </label>
+        </div>`;
+    } else if (q.rating5) {
+      questionsHtml += `
+        <div class="rating-question">
+          <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+          <div class="rating-scale" role="radiogroup" aria-label="${escapeAttr(q.label)} 10段階評価">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+              <label class="rating-choice">
+                <input type="radio" name="q_${q.id}" value="${n}" required>
+                <span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span>
+              </label>`).join('')}
+          </div>
+          <label class="rating-note-label">備考・補足（任意）</label>
+          <textarea name="q_${q.id}_note" placeholder="評価について補足があれば入力してください"></textarea>
+        </div>`;
+    } else {
+      questionsHtml += `
+        <label>${escapeHtml(q.label)}<span class="required">※</span></label>
+        <textarea name="q_${q.id}" required></textarea>`;
+    }
   });
 
   app.innerHTML = `
     <div class="card">
+      <div class="product-header">
+        ${c.imageUrl ? `<img class="product-image" src="${escapeAttr(c.imageUrl)}" alt="商品画像" onerror="this.style.display='none'">` : ''}
+        <div class="product-copy">
       <div class="product-name">${escapeHtml(c.productName)}</div>
       ${c.features ? `<div class="product-features">${escapeHtml(c.features)}</div>` : ''}
       ${c.deadline ? `<div class="deadline">入力期限：${escapeHtml(c.deadline)}</div>` : ''}
+        </div>
+      </div>
     </div>
     <form id="reviewForm" class="card">
-      <div style="font-size:11px;color:var(--sub);line-height:1.6;margin-bottom:12px;">
-        ※入力内容は送信するまでこのブラウザに自動で一時保存されます。送信すると保存内容は削除されますのでご注意ください（再送信は可能です）。
-      </div>
-      <div class="draft-note" id="draftNote" style="display:none;font-size:12px;color:var(--sub);margin-bottom:8px;">
-        ※前回の入力途中の内容を自動で復元しました（このブラウザにだけ保存されています）
-      </div>
-
       <label>お名前<span class="required">※</span></label>
       <input type="text" name="reviewerName" required>
 
       <label>部署</label>
-      <input type="text" name="department" placeholder="例：経理／広報／店舗など">
+      <select name="department">
+        <option value="">選択してください</option>
+        <option value="経理">経理</option>
+        <option value="広報">広報</option>
+        <option value="資材">資材</option>
+        <option value="システム">システム</option>
+        <option value="モール">モール</option>
+        <option value="営業">営業</option>
+        <option value="デザイン">デザイン</option>
+        <option value="店舗">店舗</option>
+        <option value="商品企画">商品企画</option>
+        <option value="総務">総務</option>
+        <option value="人事">人事</option>
+        <option value="その他">その他</option>
+      </select>
 
       ${questionsHtml}
 
+      <p class="draft-note" id="draftNote">入力内容は送信前まで、このブラウザに自動で下書き保存されます。別のブラウザや端末からは見られません。送信が完了すると下書きは削除されます。送信後も、新しい回答として再送信できます。共用端末ではご注意ください。</p>
       <button type="submit" class="block">この内容で送信する</button>
     </form>
   `;
 
-  const formEl = document.getElementById('reviewForm');
-  formEl.addEventListener('submit', onSubmitReview);
-  setupDraftAutosave(formEl, selectedCampaign.id);
+  const form = document.getElementById('reviewForm');
+  restoreReviewDraft(form);
+  form.addEventListener('input', () => saveReviewDraft(form));
+  form.addEventListener('change', () => saveReviewDraft(form));
+  form.addEventListener('submit', onSubmitReview);
 }
 
-/* -----------------------------------------------------
-   下書きの自動保存／復元（このブラウザ内のみ・送信すると消去）
-   ・別の端末やブラウザからは見えない（localStorageはブラウザごとに独立）
-   ・「送信する」を押すと該当の下書きは削除される
------------------------------------------------------ */
-function draftKey(campaignId) {
-  return 'review_draft_' + campaignId;
+function reviewDraftKey() {
+  return 'eporashe_review_draft_v1_' + selectedCampaign.id;
 }
 
-function setupDraftAutosave(formEl, campaignId) {
-  const key = draftKey(campaignId);
-
-  // 保存されている下書きがあれば復元
+function saveReviewDraft(form) {
   try {
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const draft = JSON.parse(saved);
-      Object.keys(draft).forEach(name => {
-        const el = formEl.elements[name];
-        if (el) el.value = draft[name];
-      });
-      const note = document.getElementById('draftNote');
-      if (note) note.style.display = 'block';
+    const fields = {};
+    for (const field of form.querySelectorAll('[name]')) {
+      if (!fields[field.name]) fields[field.name] = [];
+      fields[field.name].push(field.type === 'checkbox' || field.type === 'radio'
+        ? {value: field.value, checked: field.checked}
+        : {value: field.value});
     }
+    localStorage.setItem(reviewDraftKey(), JSON.stringify(fields));
   } catch (err) {
-    // 復元に失敗しても入力は普通にできるので無視する
+    const note = document.getElementById('draftNote');
+    if (note) note.textContent = 'このブラウザでは下書きを保存できません。送信するまで画面を閉じないでください。';
   }
-
-  // 入力のたびにこのブラウザへ保存
-  formEl.addEventListener('input', () => {
-    try {
-      const draft = {};
-      Array.from(formEl.elements).forEach(el => {
-        if (el.name) draft[el.name] = el.value;
-      });
-      localStorage.setItem(key, JSON.stringify(draft));
-    } catch (err) {
-      // 保存に失敗しても致命的ではないので無視する
-    }
-  });
 }
 
-function clearDraft(campaignId) {
+function restoreReviewDraft(form) {
   try {
-    localStorage.removeItem(draftKey(campaignId));
+    const saved = JSON.parse(localStorage.getItem(reviewDraftKey()) || 'null');
+    if (!saved || typeof saved !== 'object') return;
+    const positions = {};
+    for (const field of form.querySelectorAll('[name]')) {
+      const index = positions[field.name] || 0;
+      positions[field.name] = index + 1;
+      const item = saved[field.name] && saved[field.name][index];
+      if (!item) continue;
+      if (field.type === 'checkbox' || field.type === 'radio') {
+        if (field.value === item.value) field.checked = !!item.checked;
+      } else {
+        field.value = item.value || '';
+      }
+    }
   } catch (err) {
-    // 無視する
+    // 壊れた下書きは無視し、入力画面を使える状態に保つ。
   }
 }
 
@@ -287,10 +700,25 @@ async function onSubmitReview(e) {
   btn.textContent = '送信中…';
 
   const answers = {};
-  (selectedCampaign.questions || []).forEach(q => {
-    const el = form.querySelector(`[name="q_${q.id}"]`);
-    answers[q.label] = el ? el.value : '';
-  });
+  for (const q of (selectedCampaign.questions || [])) {
+    if (q.label === '肌質' && !q.rating5) {
+      const checked = Array.from(form.querySelectorAll(`[name="q_${q.id}"]:checked`));
+      if (!checked.length) {
+        alert('肌質を1つ以上選択してください');
+        btn.disabled = false;
+        btn.textContent = 'この内容で送信する';
+        return;
+      }
+      answers[q.label] = checked.map(el => el.value).join('、');
+    } else {
+      const el = form.querySelector(`[name="q_${q.id}"]:checked`) || form.querySelector(`[name="q_${q.id}"]`);
+      answers[q.label] = el ? el.value : '';
+    }
+    if (q.rating5) {
+      const note = form.querySelector(`[name="q_${q.id}_note"]`);
+      answers[q.label + '__note'] = note ? note.value : '';
+    }
+  }
 
   const payload = {
     action: 'submitReview',
@@ -309,7 +737,7 @@ async function onSubmitReview(e) {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    clearDraft(selectedCampaign.id);
+    try { localStorage.removeItem(reviewDraftKey()); } catch (err) {}
     showReviewSuccess();
   } catch (err) {
     alert('送信に失敗しました。もう一度お試しください。\n(' + err.message + ')');
@@ -334,6 +762,8 @@ let adminPassword = sessionStorage.getItem('review_admin_pw') || '';
 let adminTab = 'new';
 let editingCampaign = null;
 let questionDraft = [];
+let pendingImageDataUrl = '';
+let removeExistingImage = false;
 
 function renderAdminInit() {
   if (adminPassword) {
@@ -402,12 +832,24 @@ function switchAdminTab(tab) {
 function renderNewForm() {
   const c = editingCampaign || { productName:'', features:'', deadline:'', active:true, questions: defaultQuestions() };
   questionDraft = JSON.parse(JSON.stringify(c.questions || []));
+  pendingImageDataUrl = '';
+  removeExistingImage = false;
 
   const body = document.getElementById('adminBody');
   body.innerHTML = `
     <div class="card">
       <label>商品名<span class="required">※</span></label>
       <input type="text" id="f_productName" value="${escapeAttr(c.productName)}">
+
+      <label>商品画像（任意）</label>
+      <div class="image-upload-box">
+        <input type="file" id="f_productImage" accept="image/jpeg,image/png,image/webp" onchange="handleProductImage(event)">
+        <div class="field-help" style="margin:8px 0 0;">JPEG・PNG・WebP。自動で縮小して保存します。</div>
+        <div id="imagePreview" class="image-preview" ${c.imageUrl ? '' : 'style="display:none"'}>
+          <img id="imagePreviewImg" src="${escapeAttr(c.imageUrl || '')}" alt="商品画像プレビュー">
+          <div><div id="imageStatus" class="image-status">${c.imageUrl ? '現在登録されている画像です' : ''}</div><button type="button" class="danger" style="margin-top:7px;padding:7px 10px;font-size:12px" onclick="clearProductImage()">画像を削除</button></div>
+        </div>
+      </div>
 
       <label>特徴・説明（レビュー画面に表示されます）</label>
       <textarea id="f_features">${escapeHtml(c.features)}</textarea>
@@ -432,43 +874,122 @@ function renderNewForm() {
   renderQuestionList();
 }
 
+async function handleProductImage(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    alert('JPEG・PNG・WebP画像を選んでください');
+    event.target.value = '';
+    return;
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    alert('元画像は12MB以下にしてください');
+    event.target.value = '';
+    return;
+  }
+  try {
+    pendingImageDataUrl = await resizeImage(file, 1200, 0.84);
+    removeExistingImage = false;
+    document.getElementById('imagePreviewImg').src = pendingImageDataUrl;
+    document.getElementById('imagePreview').style.display = 'flex';
+    document.getElementById('imageStatus').textContent = 'この画像を保存します';
+  } catch (err) {
+    alert('画像を読み込めませんでした: ' + err.message);
+    event.target.value = '';
+  }
+}
+
+function resizeImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('画像形式を確認してください'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearProductImage() {
+  pendingImageDataUrl = '';
+  removeExistingImage = true;
+  const input = document.getElementById('f_productImage');
+  if (input) input.value = '';
+  const preview = document.getElementById('imagePreview');
+  if (preview) preview.style.display = 'none';
+}
+
 function defaultQuestions() {
   return [
-    {id:'q_'+Math.random().toString(36).slice(2), label:'年代'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'肌質'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'第一印象'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'感想'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'お客様受け'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度（10点中）'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント'},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'個人一言コメント'}
+    {id:'q_'+Math.random().toString(36).slice(2), label:'年代', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'肌質', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'第一印象', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'感想', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'お客様受け', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度', rating5:true},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'個人一言コメント', rating5:false}
   ];
+}
+
+function isPersonalQuestionLabel(label) {
+  return label === '年代' || label === '肌質' || label === '部署';
 }
 
 function renderQuestionList() {
   const el = document.getElementById('questionList');
-  el.innerHTML = questionDraft.map((q, i) => `
-    <div class="q-row">
-      <input type="text" value="${escapeAttr(q.label)}" onchange="updateQuestionLabel(${i}, this.value)">
-      <button type="button" class="danger" onclick="removeQuestion(${i})">削除</button>
-    </div>
-  `).join('');
+  el.innerHTML = questionDraft.map((q, i) => {
+    const personal = isPersonalQuestionLabel(q.label);
+    return `
+    <div class="question-editor">
+      <div class="q-row">
+        <input type="text" value="${escapeAttr(q.label)}" onchange="updateQuestionLabel(${i}, this.value)" placeholder="質問内容を入力">
+        <button type="button" class="danger" onclick="removeQuestion(${i})">削除</button>
+      </div>
+      ${personal ? `
+        <div class="question-option" style="cursor:default;opacity:.72;">
+          <span>個人属性項目のため10段階評価は設定しません</span>
+        </div>` : `
+        <label class="question-option">
+          <input type="checkbox" ${q.rating5?'checked':''} onchange="updateQuestionRating(${i}, this.checked)">
+          10段階評価にする
+          <span class="hint">（1〜10＋備考欄を表示）</span>
+        </label>`}
+    </div>`;
+  }).join('');
 }
-
 function addQuestion() {
-  questionDraft.push({ id: 'q_' + Math.random().toString(36).slice(2), label: '' });
+  questionDraft.push({ id: 'q_' + Math.random().toString(36).slice(2), label: '', rating5:false });
   renderQuestionList();
 }
-function updateQuestionLabel(i, val) { questionDraft[i].label = val; }
+function updateQuestionLabel(i, val) {
+  questionDraft[i].label = val;
+  if (isPersonalQuestionLabel(val)) questionDraft[i].rating5 = false;
+  renderQuestionList();
+}
+function updateQuestionRating(i, checked) { questionDraft[i].rating5 = !!checked; }
 function removeQuestion(i) { questionDraft.splice(i, 1); renderQuestionList(); }
 
 async function saveCampaign() {
   const productName = document.getElementById('f_productName').value.trim();
   if (!productName) { alert('商品名を入力してください'); return; }
-  const questions = questionDraft.filter(q => q.label.trim() !== '');
+  const questions = questionDraft.filter(q => q.label.trim() !== '').map(q => ({
+    ...q,
+    rating5: isPersonalQuestionLabel(q.label) ? false : !!q.rating5
+  }));
 
   const campaign = {
     id: editingCampaign ? editingCampaign.id : undefined,
@@ -476,7 +997,11 @@ async function saveCampaign() {
     features: document.getElementById('f_features').value,
     deadline: document.getElementById('f_deadline').value,
     active: document.getElementById('f_active').checked,
-    questions: questions
+    questions: questions,
+    imageUrl: editingCampaign ? (editingCampaign.imageUrl || '') : '',
+    imageFileId: editingCampaign ? (editingCampaign.imageFileId || '') : '',
+    imageDataUrl: pendingImageDataUrl,
+    removeImage: removeExistingImage
   };
 
   try {
@@ -572,7 +1097,9 @@ async function renderResults() {
         <select id="resultSelect">${opts}</select>
         <div class="actions">
           <button onclick="loadResults()">表示する</button>
+          <button class="excel-btn" id="excelExportBtn" onclick="exportResultsExcel()" disabled>Excelに出力</button>
         </div>
+        <div id="reviewEditWrap"></div>
         <div id="resultTableWrap"></div>
       </div>`;
     window._campaignsCache = list;
@@ -587,29 +1114,227 @@ async function loadResults() {
   const campaignId = select.value;
   const campaign = (window._campaignsCache || []).find(c => c.id === campaignId);
   const wrap = document.getElementById('resultTableWrap');
+  const exportBtn = document.getElementById('excelExportBtn');
+  if (exportBtn) exportBtn.disabled = true;
   wrap.innerHTML = '<div class="msg">読み込み中…</div>';
   try {
     const res = await fetch(GAS_URL + '?action=getReviews&campaignId=' + encodeURIComponent(campaignId) + '&password=' + encodeURIComponent(adminPassword));
     const reviews = await res.json();
     if (reviews.error) throw new Error(reviews.error);
     if (!reviews.length) {
+      window._resultsCache = null;
       wrap.innerHTML = '<div class="msg">まだ回答がありません。</div>';
       return;
     }
-    const qLabels = (campaign ? campaign.questions : []).map(q => q.label);
+    const questions = campaign ? (campaign.questions || []) : [];
     let html = '<table><tr><th>日時</th><th>名前</th><th>部署</th>';
-    qLabels.forEach(l => html += `<th>${escapeHtml(l)}</th>`);
-    html += '</tr>';
-    reviews.forEach(r => {
+    questions.forEach(q => html += `<th>${escapeHtml(q.label)}${q.rating5 ? '（10段階）' : ''}</th>`);
+    html += '<th>操作</th></tr>';
+    reviews.forEach((r, reviewIndex) => {
       html += `<tr><td>${formatDate(r.timestamp)}</td><td>${escapeHtml(r.reviewerName)}</td><td>${escapeHtml(r.department)}</td>`;
-      qLabels.forEach(l => html += `<td>${escapeHtml((r.answers||{})[l] || '')}</td>`);
+      questions.forEach(q => {
+        const ans = (r.answers || {})[q.label] || '';
+        if (q.rating5) {
+          const isNumericRating = /^(10|[1-9])$/.test(String(ans).trim());
+          const savedNote = (r.answers || {})[q.label + '__note'] || '';
+          const note = savedNote || (!isNumericRating ? ans : '');
+          const score = isNumericRating ? ans : '';
+          html += `<td>${score ? `<span class="result-score">${escapeHtml(score)} / 10</span>` : '<span class="muted">未評価</span>'}${note ? `<span class="result-note">備考：${escapeHtml(note)}</span>` : ''}</td>`;
+        } else {
+          html += `<td>${escapeHtml(ans)}</td>`;
+        }
+      });
+      html += `<td><div class="result-actions"><button type="button" class="secondary" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="editReview(${reviewIndex})">編集</button><button type="button" class="danger" style="padding:7px 10px;font-size:12px;white-space:nowrap" onclick="deleteReviewConfirm(${reviewIndex})">削除</button></div></td>`;
       html += '</tr>';
     });
     html += '</table>';
     wrap.innerHTML = html;
+    window._resultsCache = { campaign, reviews };
+    if (exportBtn) exportBtn.disabled = false;
   } catch (err) {
+    window._resultsCache = null;
     wrap.innerHTML = '<div class="msg">読み込みに失敗しました: ' + err.message + '</div>';
   }
+}
+
+function departmentOptions(selected) {
+  const departments = ['経理','広報','資材','システム','モール','営業','デザイン','店舗','商品企画','総務','人事','その他'];
+  return '<option value="">選択してください</option>' + departments.map(d => `<option value="${escapeAttr(d)}" ${d===selected?'selected':''}>${escapeHtml(d)}</option>`).join('');
+}
+
+function editReview(reviewIndex) {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const r = cache.reviews[reviewIndex];
+  const questions = (cache.campaign && cache.campaign.questions) || [];
+  let qhtml = '';
+
+  questions.forEach(q => {
+    const current = (r.answers || {})[q.label] || '';
+    if (q.label === '年代' && !q.rating5) {
+      qhtml += `<label>${escapeHtml(q.label)}</label><select name="edit_q_${q.id}">${['','20代','30代','40代','50代','60代'].map(v => `<option value="${escapeAttr(v)}" ${v===current?'selected':''}>${v||'選択してください'}</option>`).join('')}</select>`;
+    } else if (q.label === '肌質' && !q.rating5) {
+      const skinTypes = ['普通肌','乾燥肌','脂性肌（オイリー肌）','混合肌','インナードライ','敏感肌','乾燥性敏感肌','脂性・敏感肌','ニキビができやすい肌','ゆらぎ肌','その他','わからない'];
+      const selected = String(current).split('、').filter(Boolean);
+      qhtml += `<div class="skin-type-question"><label>${escapeHtml(q.label)}</label><div class="field-help">当てはまるものをすべて選択してください</div><div class="skin-type-grid">${skinTypes.map(type => `<label class="skin-type-choice"><input type="checkbox" name="edit_q_${q.id}" value="${escapeAttr(type)}" ${selected.includes(type)?'checked':''}><span>${escapeHtml(type)}</span></label>`).join('')}</div></div>`;
+    } else if (q.rating5) {
+      const isNumericRating = /^(10|[1-9])$/.test(String(current).trim());
+      const savedNote = (r.answers || {})[q.label + '__note'] || '';
+      // 以前は文章回答だった質問を後から10段階評価へ変更しても、
+      // 旧文章を「備考・補足」として残して編集できるようにする。
+      const note = savedNote || (!isNumericRating ? current : '');
+      const ratingValue = isNumericRating ? String(current) : '';
+      qhtml += `<div class="rating-question"><label>${escapeHtml(q.label)}</label><div class="rating-scale">${[1,2,3,4,5,6,7,8,9,10].map(n => `<label class="rating-choice"><input type="radio" name="edit_q_${q.id}" value="${n}" ${ratingValue===String(n)?'checked':''}><span>${n}<small>${n===1?'低い':n===10?'高い':''}</small></span></label>`).join('')}</div><label class="rating-note-label">備考・補足（任意）</label><textarea name="edit_q_${q.id}_note">${escapeHtml(note)}</textarea></div>`;
+    } else {
+      qhtml += `<label>${escapeHtml(q.label)}</label><textarea name="edit_q_${q.id}">${escapeHtml(current)}</textarea>`;
+    }
+  });
+
+  const wrap = document.getElementById('reviewEditWrap');
+  wrap.innerHTML = `<form id="reviewEditForm" class="edit-panel"><h3>回答を編集</h3><div class="edit-sub">${escapeHtml(formatDate(r.timestamp))} の回答</div><label>お名前</label><input type="text" name="reviewerName" value="${escapeAttr(r.reviewerName || '')}" required><label>部署</label><select name="department">${departmentOptions(r.department || '')}</select>${qhtml}<div class="actions"><button type="submit">変更を保存</button><button type="button" class="secondary" onclick="cancelReviewEdit()">キャンセル</button></div></form>`;
+  document.getElementById('reviewEditForm').addEventListener('submit', e => saveReviewEdit(e, reviewIndex));
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelReviewEdit() {
+  const wrap = document.getElementById('reviewEditWrap');
+  if (wrap) wrap.innerHTML = '';
+}
+
+async function saveReviewEdit(e, reviewIndex) {
+  e.preventDefault();
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const review = cache.reviews[reviewIndex];
+  const form = e.target;
+  const answers = {};
+  const questions = (cache.campaign && cache.campaign.questions) || [];
+
+  for (const q of questions) {
+    if (q.label === '肌質' && !q.rating5) {
+      answers[q.label] = Array.from(form.querySelectorAll(`[name="edit_q_${q.id}"]:checked`)).map(el => el.value).join('、');
+    } else if (q.rating5) {
+      const el = form.querySelector(`[name="edit_q_${q.id}"]:checked`);
+      answers[q.label] = el ? el.value : '';
+      const note = form.querySelector(`[name="edit_q_${q.id}_note"]`);
+      answers[q.label + '__note'] = note ? note.value : '';
+    } else {
+      const el = form.querySelector(`[name="edit_q_${q.id}"]`);
+      answers[q.label] = el ? el.value : '';
+    }
+  }
+
+  const saveBtn = form.querySelector('button[type="submit"]');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中…';
+  try {
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({
+        action:'updateReview',
+        password:adminPassword,
+        campaignId:cache.campaign.id,
+        reviewRow:review.reviewRow,
+        reviewerName:form.reviewerName.value,
+        department:form.department.value,
+        answers:answers
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    cancelReviewEdit();
+    await loadResults();
+  } catch (err) {
+    alert('更新に失敗しました: ' + err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = '変更を保存';
+  }
+}
+
+async function deleteReviewConfirm(reviewIndex) {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews[reviewIndex]) return;
+  const review = cache.reviews[reviewIndex];
+  if (!confirm('この回答を削除します。よろしいですか？\n\n削除した回答は結果一覧・Excel出力の両方から除外されます。')) return;
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'deleteReview',
+        password: adminPassword,
+        campaignId: cache.campaign.id,
+        reviewRow: review.reviewRow
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await loadResults();
+  } catch (err) {
+    alert('削除に失敗しました: ' + err.message);
+  }
+}
+
+function exportResultsExcel() {
+  const cache = window._resultsCache;
+  if (!cache || !cache.reviews || !cache.reviews.length) {
+    alert('出力できる回答がありません');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('Excel出力ライブラリの読み込みに失敗しました。インターネット接続を確認して再読み込みしてください。');
+    return;
+  }
+
+  const campaign = cache.campaign || { productName:'レビュー結果', questions:[] };
+  const questions = campaign.questions || [];
+  const headers = ['日時','名前','部署'];
+  questions.forEach(q => {
+    if (q.rating5) {
+      headers.push(q.label + '（評価1〜10）');
+      headers.push(q.label + '（備考）');
+    } else {
+      headers.push(q.label);
+    }
+  });
+
+  const rows = cache.reviews.map(r => {
+    const row = [formatDate(r.timestamp), r.reviewerName || '', r.department || ''];
+    questions.forEach(q => {
+      const answers = r.answers || {};
+      if (q.rating5) {
+        const raw = answers[q.label] || '';
+        const isNumericRating = /^(10|[1-9])$/.test(String(raw).trim());
+        const savedNote = answers[q.label + '__note'] || '';
+        row.push(isNumericRating ? Number(raw) : '');
+        row.push(savedNote || (!isNumericRating ? raw : ''));
+      } else {
+        row.push(answers[q.label] || '');
+      }
+    });
+    return row;
+  });
+
+  const aoa = [];
+  aoa.push([campaign.productName + '　レビュー集計表']);
+  aoa.push(['出力日時', new Date().toLocaleString('ja-JP')]);
+  aoa.push(['回答数', cache.reviews.length]);
+  aoa.push([]);
+  aoa.push(headers);
+  aoa.push(...rows);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const lastCol = headers.length - 1;
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:lastCol} }];
+  ws['!cols'] = headers.map((h,i) => ({ wch: i < 3 ? (i === 0 ? 20 : 14) : Math.max(16, Math.min(34, String(h).length * 2 + 4)) }));
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:4,c:0},e:{r:4,c:lastCol}}) };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'レビュー結果');
+  const safeName = String(campaign.productName || 'レビュー結果').replace(/[\\/:*?"<>|]/g,'_');
+  XLSX.writeFile(wb, safeName + '_レビュー結果.xlsx', { compression:true });
 }
 
 function formatDate(v) {
