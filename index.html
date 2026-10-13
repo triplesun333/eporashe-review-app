@@ -933,11 +933,16 @@ function defaultQuestions() {
   return [
     {id:'q_'+Math.random().toString(36).slice(2), label:'年代', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'肌質', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'第一印象', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'感想', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'お客様受け', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'説明しやすさ', rating5:false},
-    {id:'q_'+Math.random().toString(36).slice(2), label:'他社差別化', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'テクスチャ・質感（べたつき／伸び／浸透の速さなど）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'香りの印象', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'使用感の変化（使い始め・1週間後など時間差での変化）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'併用している他の化粧品との相性・使用順番での使いやすさ', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'パッケージ・容器の使いやすさ（出しやすさ、持ち運びやすさ、残量の見やすさ等）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'想定購入価格帯（いくらなら買うか）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'購入意向度（発売されたら実際に買いたいか）', rating5:true},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'継続利用意向（使い続けたいか）', rating5:true},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'一番刺さったポイント（この商品の一番の強み・訴求ポイント）', rating5:false},
+    {id:'q_'+Math.random().toString(36).slice(2), label:'誰におすすめしたいか（ターゲット像）', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'総合評価', rating5:false},
     {id:'q_'+Math.random().toString(36).slice(2), label:'推奨度', rating5:true},
     {id:'q_'+Math.random().toString(36).slice(2), label:'部署コメント', rating5:false},
@@ -1027,6 +1032,21 @@ function cancelEdit() {
 
 /* ---------- 案件一覧 ---------- */
 
+/* 入力期限から7日経過しているかどうか（Code.gs側のisCampaignExpired_と同じ考え方） */
+function isExpiredClient(c) {
+  if (!c.deadline) return false;
+  const deadlineDate = new Date(c.deadline + 'T00:00:00+09:00');
+  if (isNaN(deadlineDate.getTime())) return false;
+  const hideAfter = new Date(deadlineDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return new Date() > hideAfter;
+}
+
+function campaignStatus(c) {
+  if (!c.active) return { cls: 'off', label: '非公開' };
+  if (isExpiredClient(c)) return { cls: 'off', label: '期限切れ（自動非表示）' };
+  return { cls: '', label: '募集中' };
+}
+
 async function renderList() {
   const body = document.getElementById('adminBody');
   body.innerHTML = '<div class="msg">読み込み中…</div>';
@@ -1039,17 +1059,20 @@ async function renderList() {
       body.innerHTML = '<div class="card msg">まだ案件がありません。「質問を登録する」タブから作成してください。</div>';
       return;
     }
-    body.innerHTML = '<div class="card">' + list.map(c => `
+    body.innerHTML = '<div class="card">' + list.map(c => {
+      const status = campaignStatus(c);
+      return `
       <div class="campaign-list-item">
         <div class="info">
           <div class="name">${escapeHtml(c.productName)}</div>
           <div class="meta">質問${(c.questions||[]).length}件${c.deadline ? '・期限 '+escapeHtml(c.deadline) : ''}</div>
         </div>
-        <span class="badge ${c.active?'':'off'}">${c.active?'募集中':'非公開'}</span>
+        <span class="badge ${status.cls}">${status.label}</span>
         <button class="secondary" onclick='editCampaign(${JSON.stringify(c.id)})'>編集</button>
         <button class="danger" onclick='deleteCampaignConfirm(${JSON.stringify(c.id)})'>削除</button>
       </div>
-    `).join('') + '</div>';
+    `;
+    }).join('') + '</div>';
     window._campaignsCache = list;
   } catch (err) {
     body.innerHTML = '<div class="card msg">読み込みに失敗しました: ' + err.message + '</div>';
